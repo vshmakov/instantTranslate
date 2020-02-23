@@ -31,7 +31,7 @@ from tones import beep
 
 from .interface import InstantTranslateSettingsPanel
 from .langslist import g
-from .translator import Translator
+from .translator import GoogleTranslator
 
 _addonDir = os.path.join(os.path.dirname(__file__), "..", "..")
 if isinstance(_addonDir, bytes):
@@ -246,9 +246,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		else:
 			myTranslator = None
 			if not autoSwap:
-				myTranslator = Translator(lang_from, lang_to, text)
+				myTranslator = GoogleTranslator(lang_from, lang_to, text)
 			else:
-				myTranslator = Translator(lang_from, lang_to, text, lang_swap)
+				myTranslator = GoogleTranslator(lang_from, lang_to, text, lang_swap)
 			myTranslator.start()
 			i = 0
 			while myTranslator.is_alive():
@@ -343,7 +343,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("no selection"))
 		else:
 			self.getUpdatedGlobalVars()
-			myTranslator = Translator("auto", lang_to, info.text)
+			myTranslator = GoogleTranslator("auto", lang_to, info.text)
 			ui.message(_("Language is..."))
 			myTranslator.start()
 			i = 0

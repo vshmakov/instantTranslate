@@ -17,10 +17,12 @@ import queueHandler
 
 import json
 import six
+
 if sys.version_info.major < 3:
 	impPath = os.path.abspath(os.path.dirname(__file__))
 	sys.path.append(impPath)
 	from . import urllib2 as urllibRequest
+
 	del sys.path[-1]
 else:
 	import urllib.request as urllibRequest
@@ -33,25 +35,28 @@ arabicBreaks = u'[،؛؟]'
 # U+3000 to U+303F, U+FE10 to U+FE1F, U+FE30 to U+FE6F, U+FF01 to U+FF60
 chineseBreaks = u'[　-〿︐-︟︰-﹯！-｠]'
 latinBreaks = r'[.,!?;:]'
-splitReg = re.compile(u"{arabic}|{chinese}|{latin}".format(arabic=arabicBreaks, chinese=chineseBreaks, latin=latinBreaks))
+splitReg = re.compile(
+	u"{arabic}|{chinese}|{latin}".format(arabic=arabicBreaks, chinese=chineseBreaks, latin=latinBreaks))
+
 
 def splitChunks(text, chunksize):
 	pos = 0
 	potentialPos = 0
 	for splitMark in splitReg.finditer(text):
-		if (splitMark.start() - pos +1) < chunksize:
+		if (splitMark.start() - pos + 1) < chunksize:
 			potentialPos = splitMark.start()
 			continue
 		else:
-			yield text[pos:potentialPos+1]
+			yield text[pos:potentialPos + 1]
 			pos = potentialPos + 1
 			potentialPos = splitMark.start()
 	yield text[pos:]
 
-class Translator(threading.Thread):
+
+class GoogleTranslator(threading.Thread):
 
 	def __init__(self, lang_from, lang_to, text, lang_swap=None, chunksize=3000, *args, **kwargs):
-		super(Translator, self).__init__(*args, **kwargs)
+		super(GoogleTranslator, self).__init__(*args, **kwargs)
 		self._stopEvent = threading.Event()
 		self.text = text
 		self.chunksize = chunksize
@@ -74,29 +79,57 @@ class Translator(threading.Thread):
 			# Try to simulate a human.
 			if not self.firstChunk:
 				sleep(randint(1, 10))
-			url = urlTemplate.format(lang_from=self.lang_from, lang_to=self.lang_to, text=urllibRequest.quote(chunk.encode('utf-8')))
+			url = urlTemplate.format(lang_from=self.lang_from, lang_to=self.lang_to,
+									 text=urllibRequest.quote(chunk.encode('utf-8')))
 			try:
 				response = json.load(self.opener.open(url))
 				if len(response[-1]) > 0:
-				# Case where source language is not defined
+					# Case where source language is not defined
 					temp = response[-1][-1][0]
 					# Possible improvement: In case of multiple language detected, there are multiple languages in response[-1][-1].
-					self.lang_detected = temp if isinstance(temp,six.text_type) else six.text_type()
+					self.lang_detected = temp if isinstance(temp, six.text_type) else six.text_type()
 					if not self.lang_detected:
 						self.lang_detected = _("unavailable")
 				else:
-				# Case where source language is defined
+					# Case where source language is defined
 					self.lang_detected = response[2]
-#				log.info("firstChunk=%s, lang_from=%s, lang_detected=%s, lang_to=%s, lang_swap=%s"%(self.firstChunk, self.lang_from, self.lang_detected, self.lang_to, self.lang_swap))
+				#				log.info("firstChunk=%s, lang_from=%s, lang_detected=%s, lang_to=%s, lang_swap=%s"%(self.firstChunk, self.lang_from, self.lang_detected, self.lang_to, self.lang_swap))
 				if self.firstChunk and self.lang_from == "auto" and self.lang_detected == self.lang_to and self.lang_swap is not None:
 					self.lang_to = self.lang_swap
 					self.firstChunk = False
-					url = urlTemplate.format(lang_from=self.lang_from, lang_to=self.lang_to, text=urllibRequest.quote(chunk.encode('utf-8')))
+					url = urlTemplate.format(lang_from=self.lang_from, lang_to=self.lang_to,
+											 text=urllibRequest.quote(chunk.encode('utf-8')))
 					response = json.load(self.opener.open(url))
 			except Exception as e:
 				# We have probably been blocked, so stop trying to translate.
-#				log.exception("Instant translate: Can not translate text '%s'" %chunk)
-#				raise e
+				#				log.exception("Instant translate: Can not translate text '%s'" %chunk)
+				#				raise e
 				queueHandler.queueFunction(queueHandler.eventQueue, ui.message, _("Translation failed"))
 				return
 			self.translation += "".join(r[0] for r in response[0])
+
+
+class YandexTranslator(GoogleTranslator):
+	def run(self):
+		urlTemplate = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=trnsl.1.1.20160704T120239Z.5bbe772fede33a6e.f8155753e939ab51790587718370993c40f29897&text={text}&lang={lang_from}-{lang_to}'
+		for chunk in splitChunks(self.text, self.chunksize):
+			# Make sure we don't send requests to yandex too often.
+			# Try to simulate a human.
+			if not self.firstChunk:
+				sleep(randint(1, 10))
+			url = urlTemplate.format(text=urllibRequest.quote(chunk.encode('utf-8')), lang_from=self.lang_from,
+									 lang_to=self.lang_to)
+			try:
+				response = json.load(self.opener.open(url))
+				if self.firstChunk and self.lang_from == "auto" and response[
+					"src"] == self.lang_to and self.lang_swap is not None:
+					self.lang_to = self.lang_swap
+					self.firstChunk = False
+					url = urlTemplate.format(text=urllibRequest.quote(chunk.encode('utf-8')), lang_from=self.lang_from,
+											 lang_to=self.lang_to)
+					response = json.load(self.opener.open(url))
+			except Exception as e:
+				log.exception("Instant translate: Can not translate text '%s'" % chunk)
+				# We have probably been blocked, so stop trying to translate.
+				raise e
+			self.translation += "".join(response['text'])
