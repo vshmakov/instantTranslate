@@ -186,6 +186,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		info.expand(textInfos.UNIT_WORD)
 		threading.Thread(target=self.translate, args=(info.text,)).start()
 
+	script_translateWord.__doc__ = _(
+		"Translates carret word from one language to another using Google Translate.")
+
 	def script_translateSelection(self, gesture):
 		obj = api.getFocusObject()
 		treeInterceptor = obj.treeInterceptor
@@ -204,6 +207,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: message presented in input help mode, when user presses the shortcut keys for this addon.
 	script_translateSelection.__doc__ = _(
 		"Translates selected text from one language to another using Google Translate.")
+
 
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
