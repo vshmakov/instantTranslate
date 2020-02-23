@@ -181,7 +181,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			info = None
 		if not info:
 			ui.message(_("no focus"))
-		info.expand(unit)
+		try:
+			info.expand(unit)
+		except(ValueError):
+			ui.message('not supported')
 		threading.Thread(target=self.translate, args=(info.text,)).start()
 
 	def script_translateParagraph(self, gesture):
