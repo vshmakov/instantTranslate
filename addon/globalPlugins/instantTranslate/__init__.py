@@ -1,37 +1,40 @@
-#__init__.py
+# __init__.py
 # Copyright (C) 2012-2016 Aleksey Sadovoy AKA Lex <lex@progger.ru>,
-#ruslan <ru2020slan@yandex.ru>,
-#beqa <beqaprogger@gmail.com>
-#This addon was been repacked and optimized for executing without standalone Python by Outsider <outsidepro@rambler.ru>.
-#other nvda contributors
-#This file is covered by the GNU General Public License.
-#See the file COPYING for more details.
-
+# ruslan <ru2020slan@yandex.ru>,
+# beqa <beqaprogger@gmail.com>
+# This addon was been repacked and optimized for executing without standalone Python by Outsider <outsidepro@rambler.ru>.
+# other nvda contributors
+# This file is covered by the GNU General Public License.
+# See the file COPYING for more details.
+from textInfos import TextInfo
+from logHandler import log
+from NVDAObjects import NVDAObject
+import os
+import threading
 from functools import wraps
-from .interface import InstantTranslateSettingsPanel
-from .langslist import g
 from locale import getdefaultlocale
 from time import sleep
-from tones import beep
-from .translator import Translator
+
 import addonHandler
 import api
+import braille
 import config
 import globalPluginHandler
 import globalVars
 import gui
-import json
-import os
 import queueHandler
-import scriptHandler
+import six
 import textInfos
-import threading
 import tones
 import ui
-from speech import LangChangeCommand, speak
-import braille
 import wx
-import six
+from keyboardHandler import KeyboardInputGesture
+from speech import LangChangeCommand, speak
+from tones import beep
+
+from .interface import InstantTranslateSettingsPanel
+from .langslist import g
+from .translator import Translator
 
 _addonDir = os.path.join(os.path.dirname(__file__), "..", "..")
 if isinstance(_addonDir, bytes):
@@ -50,19 +53,21 @@ else:
 	lo_lang = s[0:s.find("_")]
 
 confspec = {
-"from": "string(default=auto)",
-"into": "string(default={lo_lang})",
-"swap": "string(default=en)",
-"copytranslatedtext": "boolean(default=true)",
-"autoswap": "boolean(default=true)",
-"isautoswapped": "boolean(default=false)",
+	"from": "string(default=auto)",
+	"into": "string(default={lo_lang})",
+	"swap": "string(default=en)",
+	"copytranslatedtext": "boolean(default=true)",
+	"autoswap": "boolean(default=true)",
+	"isautoswapped": "boolean(default=false)",
 }
 config.conf.spec["instanttranslate"] = confspec
+
 
 # Below toggle code came from Tyler Spivey's code, with enhancements by Joseph Lee.
 
 def finally_(func, final):
 	"""Calls final after func, even if it fails."""
+
 	def wrap(f):
 		@wraps(f)
 		def new(*args, **kwargs):
@@ -70,18 +75,21 @@ def finally_(func, final):
 				func(*args, **kwargs)
 			finally:
 				final()
+
 		return new
+
 	return wrap(final)
 
-#def detect_language(text):
+
+# def detect_language(text):
 #	response=urllib.urlopen("https://translate.yandex.net/api/v1.5/tr.json/detect?key=trnsl.1.1.20150410T053856Z.1c57628dc3007498.d36b0117d8315e9cab26f8e0302f6055af8132d7&"+urllib.urlencode({"text":text.encode('utf-8')})).read()
 #	response=json.loads(response)
 #	return response['lang']
 
 def messageWithLangDetection(msg):
-	autoLanguageSwitching=config.conf['speech']['autoLanguageSwitching']
+	autoLanguageSwitching = config.conf['speech']['autoLanguageSwitching']
 	if autoLanguageSwitching:
-		speechSequence=[]
+		speechSequence = []
 		speechSequence.append(LangChangeCommand(msg['lang']))
 		speechSequence.append(msg['text'])
 		speak(speechSequence)
@@ -143,7 +151,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.bindGestures(self.__ITGestures)
 		self.toggling = True
 		tones.beep(100, 10)
-	script_ITLayer.__doc__=_("Instant Translate layer commands. t translates selected text, shift+t translates clipboard text, a announces current swap configuration, s swaps source and target languages, c copies last result to clipboard, i identify the language of selected text.")
+
+	script_ITLayer.__doc__ = _(
+		"Instant Translate layer commands. t translates selected text, shift+t translates clipboard text, a announces current swap configuration, s swaps source and target languages, c copies last result to clipboard, i identify the language of selected text.")
 
 	def terminate(self):
 		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(InstantTranslateSettingsPanel)
@@ -153,41 +163,60 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			text = api.getClipData()
 		except:
 			text = None
-		if not text or not isinstance(text,six.string_types) or text.isspace():
+		if not text or not isinstance(text, six.string_types) or text.isspace():
 			# Translators: message presented when user presses the shortcut key for translating clipboard text but the clipboard is empty.
 			ui.message(_("There is no text on the clipboard"))
 		else:
 			threading.Thread(target=self.translate, args=(text,)).start()
+
 	# Translators: message presented in input help mode, when user presses the shortcut keys for this addon.
-	script_translateClipboardText.__doc__=_("Translates clipboard text from one language to another using Google Translate.")
+	script_translateClipboardText.__doc__ = _(
+		"Translates clipboard text from one language to another using Google Translate.")
+
+	def script_translateWord(self, gesture: KeyboardInputGesture) -> None:
+		object: NVDAObject = api.getCaretObject()
+		try:
+			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+		except (RuntimeError, NotImplementedError):
+			info = None
+		if not info:
+			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
+			ui.message(_("no carret"))
+			return
+		info.expand(textInfos.UNIT_WORD)
+		threading.Thread(target=self.translate, args=(info.text,)).start()
 
 	def script_translateSelection(self, gesture):
-		obj=api.getFocusObject()
-		treeInterceptor=obj.treeInterceptor
-		if hasattr(treeInterceptor,'TextInfo') and not treeInterceptor.passThrough:
-			obj=treeInterceptor
+		obj = api.getFocusObject()
+		treeInterceptor = obj.treeInterceptor
+		if hasattr(treeInterceptor, 'TextInfo') and not treeInterceptor.passThrough:
+			obj = treeInterceptor
 		try:
-			info=obj.makeTextInfo(textInfos.POSITION_SELECTION)
+			info = obj.makeTextInfo(textInfos.POSITION_SELECTION)
 		except (RuntimeError, NotImplementedError):
-			info=None
+			info = None
 		if not info or info.isCollapsed:
 			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
 			ui.message(_("no selection"))
 		else:
 			threading.Thread(target=self.translate, args=(info.text,)).start()
+
 	# Translators: message presented in input help mode, when user presses the shortcut keys for this addon.
-	script_translateSelection.__doc__=_("Translates selected text from one language to another using Google Translate.")
+	script_translateSelection.__doc__ = _(
+		"Translates selected text from one language to another using Google Translate.")
 
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
 		global lang_from
 		# useful for yandex, that doesn't support auto option
-#		if lang_from == "auto":
-#			lang_from = detect_language(text)
+		#		if lang_from == "auto":
+		#			lang_from = detect_language(text)
 		translation = None
-		if (text, lang_to, lang_from) in [(x[0],x[1],x[2]) for x in self.cachedResults]:
-			translation,lang = [f for f in self.cachedResults if f[0] == text and f[1] == lang_to and f[2] == lang_from][0][3:5]
-			index = [(te,lt,lf,tr) for te, lt, lf, tr, lg in self.cachedResults].index((text, lang_to, lang_from, translation))
+		if (text, lang_to, lang_from) in [(x[0], x[1], x[2]) for x in self.cachedResults]:
+			translation, lang = \
+				[f for f in self.cachedResults if f[0] == text and f[1] == lang_to and f[2] == lang_from][0][3:5]
+			index = [(te, lt, lf, tr) for te, lt, lf, tr, lg in self.cachedResults].index(
+				(text, lang_to, lang_from, translation))
 			self.addResultToCache(text, translation, lang, removeIndex=index)
 		else:
 			myTranslator = None
@@ -196,10 +225,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			else:
 				myTranslator = Translator(lang_from, lang_to, text, lang_swap)
 			myTranslator.start()
-			i=0
+			i = 0
 			while myTranslator.is_alive():
 				sleep(0.1)
-				i+=1
+				i += 1
 				if i == 10:
 					beep(500, 100)
 					i = 0
@@ -227,8 +256,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def swapLanguages(self, langFrom, langTo):
 		global lang_from, lang_to
-		lang_from=langTo
-		lang_to=langFrom
+		lang_from = langTo
+		lang_to = langFrom
 
 	def script_swapLanguages(self, gesture):
 		self.getUpdatedGlobalVars()
@@ -249,6 +278,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Translators: message presented to announce the current source and target languages.
 		ui.message(_("Translate: from {lang1} to {lang2}").format(lang1=lang_from, lang2=lang_to))
 		self.script_translateSelection(gesture)
+
 	# Translators: Presented in input help mode.
 	script_swapLanguages.__doc__ = _("It swaps source and target languages.")
 
@@ -256,31 +286,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.getUpdatedGlobalVars()
 		# Translators: message presented to announce the current source and target languages.
 		ui.message(_("Translate: from {lang1} to {lang2}").format(lang1=lang_from, lang2=lang_to))
+
 	# Translators: Presented in input help mode.
 	script_announceLanguages.__doc__ = _("It announces the current source and target languages.")
 
 	def script_copyLastResult(self, gesture):
 		self.getUpdatedGlobalVars()
 		if len(self.cachedResults) > 0:
-			translation = self.cachedResults[len(self.cachedResults)-1][3]
+			translation = self.cachedResults[len(self.cachedResults) - 1][3]
 			self.copyResult(translation, ignoreSetting=True)
 			# Translators: message presented to announce a successful copy
 			ui.message(_("Last translation copied in clipboard"))
 		else:
 			# Translators: message presented to announce no previous translation disponibility
 			ui.message(_("No stored translation"))
+
 	# Translators: Presented in input help mode.
 	script_copyLastResult.__doc__ = _("It copies the last translation to clipboard")
 
 	def script_identifyLanguage(self, gesture):
-		obj=api.getFocusObject()
-		treeInterceptor=obj.treeInterceptor
-		if hasattr(treeInterceptor,'TextInfo') and not treeInterceptor.passThrough:
-			obj=treeInterceptor
+		obj = api.getFocusObject()
+		treeInterceptor = obj.treeInterceptor
+		if hasattr(treeInterceptor, 'TextInfo') and not treeInterceptor.passThrough:
+			obj = treeInterceptor
 		try:
-			info=obj.makeTextInfo(textInfos.POSITION_SELECTION)
+			info = obj.makeTextInfo(textInfos.POSITION_SELECTION)
 		except (RuntimeError, NotImplementedError):
-			info=None
+			info = None
 		if not info or info.isCollapsed:
 			# Translators: user has pressed the shortcut key for identifying the language of selected text, but no text was actually selected.
 			ui.message(_("no selection"))
@@ -289,34 +321,38 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			myTranslator = Translator("auto", lang_to, info.text)
 			ui.message(_("Language is..."))
 			myTranslator.start()
-			i=0
-			while  myTranslator.isAlive():
+			i = 0
+			while myTranslator.isAlive():
 				sleep(0.1)
-				i+=1
+				i += 1
 				if i == 10:
 					beep(500, 100)
 					i = 0
 			myTranslator.join()
 			language = myTranslator.lang_detected
 			queueHandler.queueFunction(queueHandler.eventQueue, ui.message, g(language))
+
 	# Translators: Presented in input help mode.
 	script_identifyLanguage.__doc__ = _("It identifies the language of selected text")
 
 	def script_displayHelp(self, gesture):
-		ui.message(_("t translates selected text, shift+t translates clipboard text, a announces current swap configuration, s swaps source and target languages, c copies last result to clipboard, i identify the language of selected text, o open translation settings dialog, h displays this message."))
+		ui.message(_(
+			"t translates selected text, shift+t translates clipboard text, a announces current swap configuration, s swaps source and target languages, c copies last result to clipboard, i identify the language of selected text, o open translation settings dialog, h displays this message."))
 
 	def script_showSettings(self, gesture):
-		wx.CallAfter(gui.mainFrame._popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog, InstantTranslateSettingsPanel)
+		wx.CallAfter(gui.mainFrame._popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog,
+					 InstantTranslateSettingsPanel)
 
-	__ITGestures={
-		"kb:t":"translateSelection",
-		"kb:shift+t":"translateClipboardText",
-		"kb:s":"swapLanguages",
-		"kb:a":"announceLanguages",
-		"kb:c":"copyLastResult",
-		"kb:i":"identifyLanguage",
-		"kb:o":"showSettings",
-		"kb:h":"displayHelp",
+	__ITGestures = {
+		"kb:t": "translateSelection",
+		"kb:shift+t": "translateClipboardText",
+		"kb:s": "swapLanguages",
+		"kb:a": "announceLanguages",
+		"kb:c": "copyLastResult",
+		"kb:i": "identifyLanguage",
+		"kb:o": "showSettings",
+		"kb:h": "displayHelp",
+		"kb:w": "translateWord",
 	}
 
 	__gestures = {
