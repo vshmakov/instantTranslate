@@ -6,6 +6,7 @@
 # other nvda contributors
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
+
 import os
 import threading
 from functools import wraps
@@ -25,10 +26,7 @@ import textInfos
 import tones
 import ui
 import wx
-from NVDAObjects import NVDAObject
-from keyboardHandler import KeyboardInputGesture
 from speech import LangChangeCommand, speak
-from textInfos import TextInfo
 from tones import beep
 
 from .interface import InstantTranslateSettingsPanel
@@ -172,69 +170,43 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateClipboardText.__doc__ = _(
 		"Translates clipboard text from one language to another using Google Translate.")
 
-	def script_translateParagraph(self, gesture: KeyboardInputGesture) -> None:
-		object: NVDAObject = api.getCaretObject()
+	def translateFocusText(self, unit):
+		object = api.getFocusObject()
+		treeInterceptor = object.treeInterceptor
+		if hasattr(treeInterceptor, 'TextInfo') and not treeInterceptor.passThrough:
+			object = treeInterceptor
 		try:
-			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+			info = object.makeTextInfo(textInfos.POSITION_CARET)
 		except (RuntimeError, NotImplementedError):
 			info = None
 		if not info:
-			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
-			ui.message(_("no carret"))
-			return
-		info.expand(textInfos.UNIT_PARAGRAPH)
+			ui.message(_("no focus"))
+		info.expand(unit)
 		threading.Thread(target=self.translate, args=(info.text,)).start()
+
+	def script_translateParagraph(self, gesture):
+		self.translateFocusText(textInfos.UNIT_PARAGRAPH)
 
 	script_translateParagraph.__doc__ = _(
-		"Translates carret paragraph from one language to another using Google Translate.")
+		"Translates focus paragraph from one language to another using Google Translate.")
 
-	def script_translateSentence(self, gesture: KeyboardInputGesture) -> None:
-		object: NVDAObject = api.getCaretObject()
-		try:
-			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
-		except (RuntimeError, NotImplementedError):
-			info = None
-		if not info:
-			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
-			ui.message(_("no carret"))
-			return
-		info.expand(textInfos.UNIT_SENTENCE)
-		threading.Thread(target=self.translate, args=(info.text,)).start()
+	def script_translateSentence(self, gesture):
+		self.translateFocusText(textInfos.UNIT_SENTENCE)
 
 	script_translateSentence.__doc__ = _(
-		"Translates carret  Sentence from one language to another using Google Translate.")
+		"Translates focus Sentence from one language to another using Google Translate.")
 
-	def script_translateRow(self, gesture: KeyboardInputGesture) -> None:
-		object: NVDAObject = api.getCaretObject()
-		try:
-			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
-		except (RuntimeError, NotImplementedError):
-			info = None
-		if not info:
-			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
-			ui.message(_("no carret"))
-			return
-		info.expand(textInfos.UNIT_LINE)
-		threading.Thread(target=self.translate, args=(info.text,)).start()
+	def script_translateRow(self, gesture):
+		self.translateFocusText(textInfos.UNIT_LINE)
 
 	script_translateRow.__doc__ = _(
 		"Translates focus row from one language to another using Google Translate.")
 
-	def script_translateWord(self, gesture: KeyboardInputGesture) -> None:
-		object: NVDAObject = api.getCaretObject()
-		try:
-			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
-		except (RuntimeError, NotImplementedError):
-			info = None
-		if not info:
-			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
-			ui.message(_("no carret"))
-			return
-		info.expand(textInfos.UNIT_WORD)
-		threading.Thread(target=self.translate, args=(info.text,)).start()
+	def script_translateWord(self, gesture):
+		self.translateFocusText(textInfos.UNIT_WORD)
 
 	script_translateWord.__doc__ = _(
-		"Translates carret word from one language to another using Google Translate.")
+		"Translates focus word from one language to another using Google Translate.")
 
 	def script_translateSelection(self, gesture):
 		obj = api.getFocusObject()
