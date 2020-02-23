@@ -189,6 +189,41 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateWord.__doc__ = _(
 		"Translates carret word from one language to another using Google Translate.")
 
+
+	def script_translateParagraph(self, gesture: KeyboardInputGesture) -> None:
+		object: NVDAObject = api.getCaretObject()
+		try:
+			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+		except (RuntimeError, NotImplementedError):
+			info = None
+		if not info:
+			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
+			ui.message(_("no carret"))
+			return
+		info.expand(textInfos.UNIT_PARAGRAPH)
+		threading.Thread(target=self.translate, args=(info.text,)).start()
+
+	script_translateParagraph.__doc__ = _(
+		"Translates carret paragraph from one language to another using Google Translate.")
+
+
+	def script_translateSentence(self, gesture: KeyboardInputGesture) -> None:
+		object: NVDAObject = api.getCaretObject()
+		try:
+			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+		except (RuntimeError, NotImplementedError):
+			info = None
+		if not info:
+			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
+			ui.message(_("no carret"))
+			return
+		info.expand(textInfos.UNIT_SENTENCE)
+		threading.Thread(target=self.translate, args=(info.text,)).start()
+
+	script_translateSentence.__doc__ = _(
+		"Translates carret  Sentence from one language to another using Google Translate.")
+
+
 	def script_translateSelection(self, gesture):
 		obj = api.getFocusObject()
 		treeInterceptor = obj.treeInterceptor
