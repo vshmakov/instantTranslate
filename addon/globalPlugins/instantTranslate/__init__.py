@@ -394,6 +394,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					 InstantTranslateSettingsPanel)
 
 	__ITGestures = {
+		"kb:q": "translateParagraph",
+		"kb:w": "translateWord",
+		"kb:e": "translateSentence",
+		"kb:r": "translateRow",
 		"kb:t": "translateSelection",
 		"kb:shift+t": "translateClipboardText",
 		"kb:s": "swapLanguages",
@@ -402,7 +406,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		"kb:i": "identifyLanguage",
 		"kb:o": "showSettings",
 		"kb:h": "displayHelp",
-		"kb:w": "translateWord",
 	}
 
 	__gestures = {
