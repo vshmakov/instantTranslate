@@ -361,8 +361,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_identifyLanguage.__doc__ = _("It identifies the language of selected text")
 
 	def script_displayHelp(self, gesture):
-		ui.message(_(
-			"t translates selected text, shift+t translates clipboard text, a announces current swap configuration, s swaps source and target languages, c copies last result to clipboard, i identify the language of selected text, o open translation settings dialog, h displays this message."))
+		ui.message(_(""" q translates focus paragraph,
+			w translates focus word,
+			e translates focus sentence,
+			r translates focus row,
+			t translates selected text,
+			shift+t translates clipboard text,
+			a announces current swap configuration,
+			s swaps source and target languages,
+			c copies last result to clipboard,
+			i identify the language of selected text,
+			o open translation settings dialog,
+			h displays this message."""))
 
 	def script_showSettings(self, gesture):
 		wx.CallAfter(gui.mainFrame._popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog,
