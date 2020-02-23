@@ -6,9 +6,6 @@
 # other nvda contributors
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-from textInfos import TextInfo
-from logHandler import log
-from NVDAObjects import NVDAObject
 import os
 import threading
 from functools import wraps
@@ -28,8 +25,10 @@ import textInfos
 import tones
 import ui
 import wx
+from NVDAObjects import NVDAObject
 from keyboardHandler import KeyboardInputGesture
 from speech import LangChangeCommand, speak
+from textInfos import TextInfo
 from tones import beep
 
 from .interface import InstantTranslateSettingsPanel
@@ -173,23 +172,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateClipboardText.__doc__ = _(
 		"Translates clipboard text from one language to another using Google Translate.")
 
-	def script_translateWord(self, gesture: KeyboardInputGesture) -> None:
-		object: NVDAObject = api.getCaretObject()
-		try:
-			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
-		except (RuntimeError, NotImplementedError):
-			info = None
-		if not info:
-			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
-			ui.message(_("no carret"))
-			return
-		info.expand(textInfos.UNIT_WORD)
-		threading.Thread(target=self.translate, args=(info.text,)).start()
-
-	script_translateWord.__doc__ = _(
-		"Translates carret word from one language to another using Google Translate.")
-
-
 	def script_translateParagraph(self, gesture: KeyboardInputGesture) -> None:
 		object: NVDAObject = api.getCaretObject()
 		try:
@@ -205,7 +187,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	script_translateParagraph.__doc__ = _(
 		"Translates carret paragraph from one language to another using Google Translate.")
-
 
 	def script_translateSentence(self, gesture: KeyboardInputGesture) -> None:
 		object: NVDAObject = api.getCaretObject()
@@ -223,6 +204,37 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateSentence.__doc__ = _(
 		"Translates carret  Sentence from one language to another using Google Translate.")
 
+	def script_translateRow(self, gesture: KeyboardInputGesture) -> None:
+		object: NVDAObject = api.getCaretObject()
+		try:
+			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+		except (RuntimeError, NotImplementedError):
+			info = None
+		if not info:
+			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
+			ui.message(_("no carret"))
+			return
+		info.expand(textInfos.UNIT_LINE)
+		threading.Thread(target=self.translate, args=(info.text,)).start()
+
+	script_translateRow.__doc__ = _(
+		"Translates focus row from one language to another using Google Translate.")
+
+	def script_translateWord(self, gesture: KeyboardInputGesture) -> None:
+		object: NVDAObject = api.getCaretObject()
+		try:
+			info: TextInfo = object.makeTextInfo(textInfos.POSITION_CARET)
+		except (RuntimeError, NotImplementedError):
+			info = None
+		if not info:
+			# Translators: user has pressed the shortcut key for translating selected text, but no text was actually selected.
+			ui.message(_("no carret"))
+			return
+		info.expand(textInfos.UNIT_WORD)
+		threading.Thread(target=self.translate, args=(info.text,)).start()
+
+	script_translateWord.__doc__ = _(
+		"Translates carret word from one language to another using Google Translate.")
 
 	def script_translateSelection(self, gesture):
 		obj = api.getFocusObject()
@@ -242,7 +254,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: message presented in input help mode, when user presses the shortcut keys for this addon.
 	script_translateSelection.__doc__ = _(
 		"Translates selected text from one language to another using Google Translate.")
-
 
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
