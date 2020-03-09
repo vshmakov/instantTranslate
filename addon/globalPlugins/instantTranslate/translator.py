@@ -114,8 +114,15 @@ class YandexTranslator(GoogleTranslator):
 	def __init__(self, lang_from, lang_to, text, lang_swap=None, chunksize=3000, *args, **kwargs):
 		# yandex doesn't support auto option
 		if lang_from == "auto":
-			lang_from = detect_language(text)
+			lang_from = self.detect_language(text)
 		super().__init__(lang_from, lang_to, text, lang_swap, chunksize, *args, **kwargs)
+
+	def detect_language(self, text):
+		response = urllibRequest.urlopen(
+			"https://translate.yandex.net/api/v1.5/tr.json/detect?key=trnsl.1.1.20150410T053856Z.1c57628dc3007498.d36b0117d8315e9cab26f8e0302f6055af8132d7&" + urllib.urlencode(
+				{"text": text.encode('utf-8')})).read()
+		response = json.loads(response)
+		return response['lang']
 
 	def run(self):
 		urlTemplate = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=trnsl.1.1.20160704T120239Z.5bbe772fede33a6e.f8155753e939ab51790587718370993c40f29897&text={text}&lang={lang_from}-{lang_to}'
