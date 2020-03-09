@@ -32,6 +32,7 @@ from tones import beep
 from .interface import InstantTranslateSettingsPanel
 from .langslist import g
 from .translator import GoogleTranslator
+from .translator import YandexTranslator
 
 _addonDir = os.path.join(os.path.dirname(__file__), "..", "..")
 if isinstance(_addonDir, bytes):
@@ -230,12 +231,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateSelection.__doc__ = _(
 		"Translates selected text from one language to another using Google Translate.")
 
+	def getTranslator(self):
+		return YandexTranslator
+
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
 		global lang_from
-		# useful for yandex, that doesn't support auto option
-		#		if lang_from == "auto":
-		#			lang_from = detect_language(text)
 		translation = None
 		if (text, lang_to, lang_from) in [(x[0], x[1], x[2]) for x in self.cachedResults]:
 			translation, lang = \
@@ -245,10 +246,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.addResultToCache(text, translation, lang, removeIndex=index)
 		else:
 			myTranslator = None
+			translator = self.getTranslator()
 			if not autoSwap:
-				myTranslator = GoogleTranslator(lang_from, lang_to, text)
+				myTranslator = translator(lang_from, lang_to, text)
 			else:
-				myTranslator = GoogleTranslator(lang_from, lang_to, text, lang_swap)
+				myTranslator = translator(lang_from, lang_to, text, lang_swap)
 			myTranslator.start()
 			i = 0
 			while myTranslator.is_alive():

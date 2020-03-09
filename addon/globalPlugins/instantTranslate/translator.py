@@ -110,6 +110,13 @@ class GoogleTranslator(threading.Thread):
 
 
 class YandexTranslator(GoogleTranslator):
+
+	def __init__(self, lang_from, lang_to, text, lang_swap=None, chunksize=3000, *args, **kwargs):
+		# yandex doesn't support auto option
+		if lang_from == "auto":
+			lang_from = detect_language(text)
+		super().__init__(lang_from, lang_to, text, lang_swap, chunksize, *args, **kwargs)
+
 	def run(self):
 		urlTemplate = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=trnsl.1.1.20160704T120239Z.5bbe772fede33a6e.f8155753e939ab51790587718370993c40f29897&text={text}&lang={lang_from}-{lang_to}'
 		for chunk in splitChunks(self.text, self.chunksize):
