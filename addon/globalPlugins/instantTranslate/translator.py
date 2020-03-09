@@ -22,10 +22,13 @@ if sys.version_info.major < 3:
 	impPath = os.path.abspath(os.path.dirname(__file__))
 	sys.path.append(impPath)
 	from . import urllib2 as urllibRequest
+	from .urllib2 import urlencode
 
 	del sys.path[-1]
 else:
 	import urllib.request as urllibRequest
+	from urllib.parse import urlencode
+
 ssl._create_default_https_context = ssl._create_unverified_context
 # Each group has to be a class of possible breaking points for the writing script.
 # Usually this is the major syntax marks, such as:
@@ -119,7 +122,7 @@ class YandexTranslator(GoogleTranslator):
 
 	def detect_language(self, text):
 		response = urllibRequest.urlopen(
-			"https://translate.yandex.net/api/v1.5/tr.json/detect?key=trnsl.1.1.20150410T053856Z.1c57628dc3007498.d36b0117d8315e9cab26f8e0302f6055af8132d7&" + urllib.urlencode(
+			"https://translate.yandex.net/api/v1.5/tr.json/detect?key=trnsl.1.1.20150410T053856Z.1c57628dc3007498.d36b0117d8315e9cab26f8e0302f6055af8132d7&" + urlencode(
 				{"text": text.encode('utf-8')})).read()
 		response = json.loads(response)
 		return response['lang']
