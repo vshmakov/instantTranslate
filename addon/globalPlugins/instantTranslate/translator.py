@@ -19,6 +19,8 @@ import six
 import ui
 from logHandler import log
 
+from . import configKey
+
 if sys.version_info.major < 3:
 	impPath = os.path.abspath(os.path.dirname(__file__))
 	sys.path.append(impPath)
@@ -166,8 +168,17 @@ class TranslatorManager:
 	]
 
 	def getCurrentTranslator():
-		serviceName = config.conf['instanttranslate'].get('serviceName')
+		serviceName = config.conf[configKey.instantTranslate].get(configKey.serviceName)
 		for translator in TranslatorManager.translators:
 			if translator.getServiceName() == serviceName:
 				return translator
 		return GoogleTranslator
+
+	def setNextTranslator():
+		currentIndex = TranslatorManager.translators \
+			.index(TranslatorManager.getCurrentTranslator())
+		nextIndex = currentIndex + 1
+		if nextIndex == len(TranslatorManager.translators):
+			nextIndex = 0
+		translator = TranslatorManager.translators[nextIndex]
+		config.conf[configKey.instantTranslate][configKey.serviceName] = translator.getServiceName()
