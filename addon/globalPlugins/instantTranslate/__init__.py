@@ -78,6 +78,7 @@ def finally_(func, final):
 
 	return wrap(final)
 
+
 def messageWithLangDetection(msg):
 	autoLanguageSwitching = config.conf['speech']['autoLanguageSwitching']
 	if autoLanguageSwitching:
@@ -226,7 +227,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		"Translates selected text from one language to another using Google Translate.")
 
 	def getTranslator(self):
-		return YandexTranslator
+		translator = config.conf['instanttranslate'] \
+			.get('translator')
+		if 'yandex' == translator:
+			return YandexTranslator
+		return GoogleTranslator
 
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
