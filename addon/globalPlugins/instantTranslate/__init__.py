@@ -7,6 +7,7 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
+from .translator import  TranslatorManager
 import os
 import threading
 from functools import wraps
@@ -226,13 +227,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateSelection.__doc__ = _(
 		"Translates selected text from one language to another using Google Translate.")
 
-	def getTranslator(self):
-		translator = config.conf['instanttranslate'] \
-			.get('translator')
-		if 'yandex' == translator:
-			return YandexTranslator
-		return GoogleTranslator
-
 	def translate(self, text):
 		self.getUpdatedGlobalVars()
 		global lang_from
@@ -245,7 +239,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.addResultToCache(text, translation, lang, removeIndex=index)
 		else:
 			myTranslator = None
-			translator = self.getTranslator()
+			translator = TranslatorManager.getCurrentTranslator()
 			if not autoSwap:
 				myTranslator = translator(lang_from, lang_to, text)
 			else:

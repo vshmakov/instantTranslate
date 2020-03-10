@@ -4,19 +4,20 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
+import json
 import os
 import re
-import sys
 import ssl
+import sys
 import threading
-from time import sleep
 from random import randint
-from logHandler import log
-import ui
-import queueHandler
+from time import sleep
 
-import json
+import config
+import queueHandler
 import six
+import ui
+from logHandler import log
 
 if sys.version_info.major < 3:
 	impPath = os.path.abspath(os.path.dirname(__file__))
@@ -72,6 +73,9 @@ class GoogleTranslator(threading.Thread):
 		self.opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 		self.firstChunk = True
 
+	def getServiceName(self):
+		return 'Google'
+
 	def stop(self):
 		self._stopEvent.set()
 
@@ -120,6 +124,9 @@ class YandexTranslator(GoogleTranslator):
 			lang_from = self.detect_language(text)
 		super().__init__(lang_from, lang_to, text, lang_swap, chunksize, *args, **kwargs)
 
+	def getServiceName(self):
+		return 'Yandex'
+
 	def detect_language(self, text):
 		response = urllibRequest.urlopen(
 			"https://translate.yandex.net/api/v1.5/tr.json/detect?key=trnsl.1.1.20150410T053856Z.1c57628dc3007498.d36b0117d8315e9cab26f8e0302f6055af8132d7&" + urlencode(
@@ -150,3 +157,17 @@ class YandexTranslator(GoogleTranslator):
 				# We have probably been blocked, so stop trying to translate.
 				raise e
 			self.translation += "".join(response['text'])
+
+
+class TranslatorManager:
+	translators = [
+		GoogleTranslator,
+		YandexTranslator
+	]
+
+	def getCurrentTranslator():
+		serviceName = config.conf['instanttranslate'].get('serviceName')
+		for translator in TranslatorManager.translators:
+			if translator.getServiceName() == serviceName:
+				return translator
+		return GoogleTranslator
