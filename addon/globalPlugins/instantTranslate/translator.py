@@ -19,7 +19,7 @@ import six
 import ui
 from logHandler import log
 
-from . import configKey
+from .configKey import INSTANT_TRANSLATE, SERVICE_NAME
 
 if sys.version_info.major < 3:
 	impPath = os.path.abspath(os.path.dirname(__file__))
@@ -75,8 +75,8 @@ class GoogleTranslator(threading.Thread):
 		self.opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 		self.firstChunk = True
 
-	def getServiceName(self):
-		return 'Google'
+	def getServiceName():
+		return 'Google translator'
 
 	def stop(self):
 		self._stopEvent.set()
@@ -126,8 +126,8 @@ class YandexTranslator(GoogleTranslator):
 			lang_from = self.detect_language(text)
 		super().__init__(lang_from, lang_to, text, lang_swap, chunksize, *args, **kwargs)
 
-	def getServiceName(self):
-		return 'Yandex'
+	def getServiceName():
+		return 'Yandex translator'
 
 	def detect_language(self, text):
 		response = urllibRequest.urlopen(
@@ -162,23 +162,25 @@ class YandexTranslator(GoogleTranslator):
 
 
 class TranslatorManager:
-	translators = [
+	__translators = [
 		GoogleTranslator,
 		YandexTranslator
 	]
 
+	@staticmethod
 	def getCurrentTranslator():
-		serviceName = config.conf[configKey.instantTranslate].get(configKey.serviceName)
-		for translator in TranslatorManager.translators:
+		serviceName = config.conf[INSTANT_TRANSLATE].get(SERVICE_NAME)
+		for translator in TranslatorManager.__translators:
 			if translator.getServiceName() == serviceName:
 				return translator
 		return GoogleTranslator
 
+	@staticmethod
 	def setNextTranslator():
-		currentIndex = TranslatorManager.translators \
+		currentIndex = TranslatorManager.__translators \
 			.index(TranslatorManager.getCurrentTranslator())
 		nextIndex = currentIndex + 1
-		if nextIndex == len(TranslatorManager.translators):
+		if nextIndex == len(TranslatorManager.__translators):
 			nextIndex = 0
-		translator = TranslatorManager.translators[nextIndex]
-		config.conf[configKey.instantTranslate][configKey.serviceName] = translator.getServiceName()
+		translator = TranslatorManager.__translators[nextIndex]
+		config.conf[INSTANT_TRANSLATE][SERVICE_NAME] = translator.getServiceName()

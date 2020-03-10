@@ -3,6 +3,9 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
-instantTranslate = 'instanttranslate'
+import config
+from logHandler import log
 
-serviceName = 'serviceName'
+INSTANT_TRANSLATE='instanttranslate'
+
+SERVICE_NAME = 'serviceName'

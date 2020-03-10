@@ -7,7 +7,6 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
-from .translator import  TranslatorManager
 import os
 import threading
 from functools import wraps
@@ -33,6 +32,7 @@ from tones import beep
 from .interface import InstantTranslateSettingsPanel
 from .langslist import g
 from .translator import GoogleTranslator
+from .translator import TranslatorManager
 from .translator import YandexTranslator
 
 _addonDir = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -201,6 +201,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	script_translateRow.__doc__ = _(
 		"Translates focus row from one language to another using Google Translate.")
+
+	def script_switchTranslatorService(self, gesture):
+		TranslatorManager.setNextTranslator()
+		ui.message(TranslatorManager.getCurrentTranslator().getServiceName())
+
+	script_switchTranslatorService.__doc__ = 'Choose next translator service'
 
 	def script_translateWord(self, gesture):
 		self.translateFocusText(textInfos.UNIT_WORD)
