@@ -202,11 +202,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_translateRow.__doc__ = _(
 		"Translates focus row from one language to another using Google Translate.")
 
-	def script_switchTranslatorService(self, gesture):
+	def script_toggleTranslatorService(self, gesture):
 		TranslatorManager.setNextTranslator()
 		ui.message(TranslatorManager.getCurrentTranslator().getServiceName())
 
-	script_switchTranslatorService.__doc__ = 'Choose next translator service'
+	script_toggleTranslatorService.__doc__ = 'Choose next translator service'
 
 	def script_translateWord(self, gesture):
 		self.translateFocusText(textInfos.UNIT_WORD)
@@ -370,6 +370,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			shift+t translates clipboard text,
 			a announces current swap configuration,
 			s swaps source and target languages,
+			d toggles translator service,
 			c copies last result to clipboard,
 			i identify the language of selected text,
 			o open translation settings dialog,
@@ -387,6 +388,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		"kb:t": "translateSelection",
 		"kb:shift+t": "translateClipboardText",
 		"kb:s": "swapLanguages",
+		"kb:d": "toggleTranslatorService",
 		"kb:a": "announceLanguages",
 		"kb:c": "copyLastResult",
 		"kb:i": "identifyLanguage",
